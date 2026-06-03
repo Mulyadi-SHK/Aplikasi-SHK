@@ -53,10 +53,13 @@ def cek_password():
     st.title("Login Aplikasi SHK")
     st.caption("Masukkan username dan password untuk membuka aplikasi.")
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    # Pakai form agar setelah isi password cukup tekan Enter.
+    with st.form("form_login_shk", clear_on_submit=False):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        tombol_masuk = st.form_submit_button("Masuk", use_container_width=True)
 
-    if st.button("Masuk", use_container_width=True):
+    if tombol_masuk:
         username_ok = hmac.compare_digest(str(username), str(username_benar))
         password_ok = hmac.compare_digest(str(password), str(password_benar))
 
