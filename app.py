@@ -2021,43 +2021,6 @@ elif menu_utama == "Gaji Karyawan":
         f"s/d {format_tanggal_indonesia(tanggal_selesai_gaji)}"
     )
 
-    st.write("Upload PDF Laba/Rugi cabang SHK Makassar dan Walet Veteran. Sistem akan mengambil LABA BERSIH masing-masing cabang. Mustakim dan Toni dihitung dari SHK Makassar; Ahmad Lata dan Rahmat dihitung dari Walet Veteran.")
-    col_upload1, col_upload2 = st.columns(2)
-    with col_upload1:
-        file_laba_shk = st.file_uploader("Upload PDF Laba / Rugi - Cabang SHK Makassar", type=["pdf"], key="upload_laba_shk")
-    with col_upload2:
-        file_laba_walet = st.file_uploader("Upload PDF Laba / Rugi - Cabang Walet Veteran", type=["pdf"], key="upload_laba_walet")
-
-    st.subheader("Data Absensi Tersinkron")
-
-    df_kehadiran = st.session_state.get("df_kehadiran", pd.DataFrame())
-    df_rekap_uang_makan_edit = st.session_state.get("df_rekap_uang_makan_edit", pd.DataFrame())
-
-    if len(df_kehadiran) > 0:
-        st.success("Data absensi sudah tersedia dari halaman Rekap Absensi.")
-        kolom_absensi_ringkas = ["Nama", "Jumlah Kehadiran", "Tidak Hadir", "Terlambat"]
-        st.dataframe(
-            df_kehadiran[[c for c in kolom_absensi_ringkas if c in df_kehadiran.columns]],
-            use_container_width=True
-        )
-    else:
-        st.warning("Belum ada data absensi. Silakan buka menu Rekap Absensi dan upload file kehadiran terlebih dahulu.")
-        st.info("Gaji tetap bisa dihitung memakai nilai default, tetapi paling aman upload Rekap Absensi dulu.")
-
-    laba_bersih_shk = 0; laba_bersih_walet = 0; df_laba_shk = pd.DataFrame(); df_laba_walet = pd.DataFrame()
-    if file_laba_shk:
-        laba_bersih_shk, df_laba_shk = pilih_laba_bersih_dari_upload(file_laba_shk, "SHK Makassar", "shk")
-    if file_laba_walet:
-        laba_bersih_walet, df_laba_walet = pilih_laba_bersih_dari_upload(file_laba_walet, "Walet Veteran", "walet")
-    total_laba_bersih = laba_bersih_shk + laba_bersih_walet
-    st.subheader("Ringkasan Laba Bersih")
-    ringkasan_laba = pd.DataFrame([
-        {"Cabang":"SHK Makassar", "Laba Bersih":format_rupiah_float(laba_bersih_shk)},
-        {"Cabang":"Walet Veteran", "Laba Bersih":format_rupiah_float(laba_bersih_walet)},
-        {"Cabang":"TOTAL LABA BERSIH 2 CABANG", "Laba Bersih":format_rupiah_float(total_laba_bersih)},
-    ])
-    st.dataframe(ringkasan_laba, use_container_width=True)
-    st.success(f"Total Laba Bersih yang dipakai untuk hitung gaji: {format_rupiah_float(total_laba_bersih)}")
     st.subheader("Kalender Kerja untuk Pembagi Laba Harian")
     st.info(
         f"Periode gaji: {format_tanggal_indonesia(tanggal_mulai_gaji)} "
@@ -2110,6 +2073,44 @@ elif menu_utama == "Gaji Karyawan":
         st.write("Libur:")
         st.dataframe(df_libur, use_container_width=True)
 
+
+    st.write("Upload PDF Laba/Rugi cabang SHK Makassar dan Walet Veteran. Sistem akan mengambil LABA BERSIH masing-masing cabang. Mustakim dan Toni dihitung dari SHK Makassar; Ahmad Lata dan Rahmat dihitung dari Walet Veteran.")
+    col_upload1, col_upload2 = st.columns(2)
+    with col_upload1:
+        file_laba_shk = st.file_uploader("Upload PDF Laba / Rugi - Cabang SHK Makassar", type=["pdf"], key="upload_laba_shk")
+    with col_upload2:
+        file_laba_walet = st.file_uploader("Upload PDF Laba / Rugi - Cabang Walet Veteran", type=["pdf"], key="upload_laba_walet")
+
+    st.subheader("Data Absensi Tersinkron")
+
+    df_kehadiran = st.session_state.get("df_kehadiran", pd.DataFrame())
+    df_rekap_uang_makan_edit = st.session_state.get("df_rekap_uang_makan_edit", pd.DataFrame())
+
+    if len(df_kehadiran) > 0:
+        st.success("Data absensi sudah tersedia dari halaman Rekap Absensi.")
+        kolom_absensi_ringkas = ["Nama", "Jumlah Kehadiran", "Tidak Hadir", "Terlambat"]
+        st.dataframe(
+            df_kehadiran[[c for c in kolom_absensi_ringkas if c in df_kehadiran.columns]],
+            use_container_width=True
+        )
+    else:
+        st.warning("Belum ada data absensi. Silakan buka menu Rekap Absensi dan upload file kehadiran terlebih dahulu.")
+        st.info("Gaji tetap bisa dihitung memakai nilai default, tetapi paling aman upload Rekap Absensi dulu.")
+
+    laba_bersih_shk = 0; laba_bersih_walet = 0; df_laba_shk = pd.DataFrame(); df_laba_walet = pd.DataFrame()
+    if file_laba_shk:
+        laba_bersih_shk, df_laba_shk = pilih_laba_bersih_dari_upload(file_laba_shk, "SHK Makassar", "shk")
+    if file_laba_walet:
+        laba_bersih_walet, df_laba_walet = pilih_laba_bersih_dari_upload(file_laba_walet, "Walet Veteran", "walet")
+    total_laba_bersih = laba_bersih_shk + laba_bersih_walet
+    st.subheader("Ringkasan Laba Bersih")
+    ringkasan_laba = pd.DataFrame([
+        {"Cabang":"SHK Makassar", "Laba Bersih":format_rupiah_float(laba_bersih_shk)},
+        {"Cabang":"Walet Veteran", "Laba Bersih":format_rupiah_float(laba_bersih_walet)},
+        {"Cabang":"TOTAL LABA BERSIH 2 CABANG", "Laba Bersih":format_rupiah_float(total_laba_bersih)},
+    ])
+    st.dataframe(ringkasan_laba, use_container_width=True)
+    st.success(f"Total Laba Bersih yang dipakai untuk hitung gaji: {format_rupiah_float(total_laba_bersih)}")
     col1, col3 = st.columns(2)
     with col1:
         persen_default = st.number_input("Persentase Default per Karyawan", min_value=0.0, max_value=100.0, value=7.5, step=0.5)
