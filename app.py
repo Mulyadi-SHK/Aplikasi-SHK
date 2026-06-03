@@ -1764,15 +1764,15 @@ if menu_utama == "Beranda":
     st.markdown("""
     <style>
     div[data-testid="stButton"] > button {
-        min-height: 150px;
+        min-height: 145px;
         border-radius: 18px;
         border: 1px solid #374151;
         background: #111827;
         color: #ffffff;
         box-shadow: 0 6px 18px rgba(0,0,0,0.20);
         text-align: left;
-        padding: 20px;
-        font-size: 18px;
+        padding: 18px;
+        font-size: 17px;
         font-weight: 800;
         white-space: pre-line;
         transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
@@ -1790,6 +1790,15 @@ if menu_utama == "Beranda":
 
     with col1:
         if st.button(
+            "DASHBOARD\\n\\nDashboard Harian\\n\\nRingkasan cepat saldo, absensi, gaji, uang makan, dan barang hilang.",
+            use_container_width=True,
+            key="card_dashboard"
+        ):
+            st.session_state["menu_utama"] = "Dashboard Harian"
+            st.rerun()
+
+    with col2:
+        if st.button(
             "BANK\\n\\nRekonsiliasi Bank\\n\\nCek mutasi BRI, BCA, Mandiri, dan BNI dibandingkan dengan Histori Bank Accurate.",
             use_container_width=True,
             key="card_bank"
@@ -1797,7 +1806,7 @@ if menu_utama == "Beranda":
             st.session_state["menu_utama"] = "Rekonsiliasi Bank"
             st.rerun()
 
-    with col2:
+    with col3:
         if st.button(
             "ABSENSI\\n\\nRekap Absensi\\n\\nUpload file mentah aplikasi hadir, cek jumlah hadir, tidak hadir, terlambat, dan uang makan per cabang.",
             use_container_width=True,
@@ -1806,7 +1815,9 @@ if menu_utama == "Beranda":
             st.session_state["menu_utama"] = "Rekap Absensi"
             st.rerun()
 
-    with col3:
+    col4, col5, col6 = st.columns(3)
+
+    with col4:
         if st.button(
             "GAJI\\n\\nGaji Karyawan\\n\\nHitung gaji bagi hasil, uang makan, potongan absen, dan potongan kehilangan barang.",
             use_container_width=True,
@@ -1815,9 +1826,36 @@ if menu_utama == "Beranda":
             st.session_state["menu_utama"] = "Gaji Karyawan"
             st.rerun()
 
-    col4, col5, col6 = st.columns(3)
+    with col5:
+        if st.button(
+            "STOK\\n\\nStok & Barang Hilang\\n\\nUpload penyesuaian persediaan dan hitung total kehilangan per cabang.",
+            use_container_width=True,
+            key="card_stok_hilang"
+        ):
+            st.session_state["menu_utama"] = "Stok & Barang Hilang"
+            st.rerun()
 
-    with col4:
+    with col6:
+        if st.button(
+            "PIUTANG\\n\\nPiutang Karyawan\\n\\nCatat pinjaman, cicilan, potongan gaji, dan sisa piutang karyawan.",
+            use_container_width=True,
+            key="card_piutang"
+        ):
+            st.session_state["menu_utama"] = "Piutang Karyawan"
+            st.rerun()
+
+    col7, col8, col9 = st.columns(3)
+
+    with col7:
+        if st.button(
+            "MARKETPLACE\\n\\nMarketplace / Shopee\\n\\nCatat pengecekan order, dana masuk, dan selisih biaya marketplace.",
+            use_container_width=True,
+            key="card_marketplace"
+        ):
+            st.session_state["menu_utama"] = "Marketplace / Shopee"
+            st.rerun()
+
+    with col8:
         if st.button(
             "SOP\\n\\nModul SOP\\n\\nBuka SOP kerja, tabel langkah kerja, dan flowchart operasional SHK.",
             use_container_width=True,
@@ -1826,7 +1864,218 @@ if menu_utama == "Beranda":
             st.session_state["menu_utama"] = "Modul SOP"
             st.rerun()
 
+    with col9:
+        if st.button(
+            "LAPORAN\\n\\nLaporan Bulanan\\n\\nGabungkan ringkasan absensi, uang makan, gaji, barang hilang, dan catatan operasional.",
+            use_container_width=True,
+            key="card_laporan"
+        ):
+            st.session_state["menu_utama"] = "Laporan Bulanan"
+            st.rerun()
+
     st.info("Klik kartu yang ingin dicek. Login tetap aktif saat pindah modul.")
+
+
+
+elif menu_utama == "Dashboard Harian":
+    st.header("Dashboard Harian")
+
+    df_kehadiran = st.session_state.get("df_kehadiran", pd.DataFrame())
+    df_uang_makan = st.session_state.get("df_rekap_uang_makan_edit", pd.DataFrame())
+
+    total_karyawan_hadir = len(df_kehadiran) if isinstance(df_kehadiran, pd.DataFrame) else 0
+    total_uang_makan = 0
+    if isinstance(df_uang_makan, pd.DataFrame) and len(df_uang_makan) > 0 and "Seharusnya Uang Makan" in df_uang_makan.columns:
+        total_uang_makan = pd.to_numeric(df_uang_makan["Seharusnya Uang Makan"], errors="coerce").fillna(0).sum()
+
+    total_hilang_shk = float(st.session_state.get("dashboard_hilang_shk", 0) or 0)
+    total_hilang_veteran = float(st.session_state.get("dashboard_hilang_veteran", 0) or 0)
+
+    col_a, col_b, col_c, col_d = st.columns(4)
+    col_a.metric("Data Absensi Terbaca", f"{total_karyawan_hadir} karyawan")
+    col_b.metric("Total Uang Makan", format_rupiah_float(total_uang_makan))
+    col_c.metric("Barang Hilang SHK", format_rupiah_float(total_hilang_shk))
+    col_d.metric("Barang Hilang Veteran", format_rupiah_float(total_hilang_veteran))
+
+    st.subheader("Catatan Harian")
+    catatan_dashboard = st.text_area(
+        "Catatan operasional hari ini",
+        value=st.session_state.get("catatan_dashboard", ""),
+        height=180,
+        placeholder="Contoh: rekonsiliasi BRI sudah cocok, absensi Mei sudah diupload, barang hilang Veteran perlu dicek ulang..."
+    )
+    st.session_state["catatan_dashboard"] = catatan_dashboard
+
+    st.info("Dashboard ini mengambil data dari menu Rekap Absensi, Stok & Barang Hilang, dan catatan yang Bapak isi di sini.")
+
+elif menu_utama == "Stok & Barang Hilang":
+    st.header("Stok & Barang Hilang")
+
+    st.markdown(
+        """
+        Upload dokumen **Penyesuaian Persediaan** dari Accurate.
+        Sistem akan menjumlahkan semua baris **Pengurangan** sebagai nilai barang hilang.
+        """
+    )
+
+    col_stok1, col_stok2 = st.columns(2)
+
+    with col_stok1:
+        file_hilang_shk_dashboard = st.file_uploader(
+            "Upload Penyesuaian Persediaan - SHK Makassar",
+            type=["pdf", "xlsx", "xls"],
+            key="stok_hilang_shk_file"
+        )
+        nilai_hilang_shk_dashboard = ekstrak_total_kehilangan_barang(file_hilang_shk_dashboard)
+        nilai_hilang_shk_dashboard = st.number_input(
+            "Total Barang Hilang SHK Makassar",
+            min_value=0.0,
+            value=float(nilai_hilang_shk_dashboard),
+            step=1000.0,
+            key=f"stok_hilang_shk_{getattr(file_hilang_shk_dashboard, 'name', 'manual')}_{round(float(nilai_hilang_shk_dashboard), 2)}"
+        )
+        st.session_state["dashboard_hilang_shk"] = nilai_hilang_shk_dashboard
+
+    with col_stok2:
+        file_hilang_veteran_dashboard = st.file_uploader(
+            "Upload Penyesuaian Persediaan - Walet Veteran",
+            type=["pdf", "xlsx", "xls"],
+            key="stok_hilang_veteran_file"
+        )
+        nilai_hilang_veteran_dashboard = ekstrak_total_kehilangan_barang(file_hilang_veteran_dashboard)
+        nilai_hilang_veteran_dashboard = st.number_input(
+            "Total Barang Hilang Walet Veteran",
+            min_value=0.0,
+            value=float(nilai_hilang_veteran_dashboard),
+            step=1000.0,
+            key=f"stok_hilang_veteran_{getattr(file_hilang_veteran_dashboard, 'name', 'manual')}_{round(float(nilai_hilang_veteran_dashboard), 2)}"
+        )
+        st.session_state["dashboard_hilang_veteran"] = nilai_hilang_veteran_dashboard
+
+    df_pot_hilang_dashboard = buat_tabel_potongan_kehilangan(
+        nilai_hilang_shk_dashboard,
+        nilai_hilang_veteran_dashboard
+    )
+
+    if len(df_pot_hilang_dashboard) > 0:
+        st.subheader("Pembagian Potongan Otomatis")
+        st.dataframe(format_tabel_potongan_kehilangan(df_pot_hilang_dashboard), use_container_width=True)
+
+    st.caption("Data ini bisa menjadi acuan saat mengisi potongan di halaman Gaji Karyawan.")
+
+elif menu_utama == "Piutang Karyawan":
+    st.header("Piutang Karyawan")
+
+    st.markdown("Catat pinjaman/piutang karyawan dan cicilan yang akan dipotong dari gaji.")
+
+    if "df_piutang_karyawan" not in st.session_state:
+        st.session_state["df_piutang_karyawan"] = pd.DataFrame([
+            {"Cabang": "SHK Makassar", "Nama": "Anwar Tony", "Piutang Awal": 0, "Cicilan / Potongan Bulan Ini": 0},
+            {"Cabang": "Walet Veteran", "Nama": "Ahmad Lata", "Piutang Awal": 0, "Cicilan / Potongan Bulan Ini": 0},
+            {"Cabang": "Walet Veteran", "Nama": "Rahmat", "Piutang Awal": 0, "Cicilan / Potongan Bulan Ini": 0},
+        ])
+
+    df_piutang_edit = st.data_editor(
+        st.session_state["df_piutang_karyawan"],
+        use_container_width=True,
+        num_rows="dynamic",
+        column_config={
+            "Piutang Awal": st.column_config.NumberColumn("Piutang Awal", step=1000),
+            "Cicilan / Potongan Bulan Ini": st.column_config.NumberColumn("Cicilan / Potongan Bulan Ini", step=1000),
+        }
+    )
+
+    df_piutang_edit["Sisa Piutang"] = (
+        pd.to_numeric(df_piutang_edit["Piutang Awal"], errors="coerce").fillna(0)
+        - pd.to_numeric(df_piutang_edit["Cicilan / Potongan Bulan Ini"], errors="coerce").fillna(0)
+    )
+
+    st.session_state["df_piutang_karyawan"] = df_piutang_edit
+
+    st.subheader("Ringkasan Piutang")
+    st.dataframe(df_piutang_edit, use_container_width=True)
+
+    total_piutang = pd.to_numeric(df_piutang_edit["Sisa Piutang"], errors="coerce").fillna(0).sum()
+    st.metric("Total Sisa Piutang", format_rupiah_float(total_piutang))
+
+elif menu_utama == "Marketplace / Shopee":
+    st.header("Marketplace / Shopee")
+
+    st.markdown(
+        """
+        Modul ini untuk catatan pengecekan marketplace.
+        Saat ini masih berupa tabel kontrol manual agar proses order, input Accurate, dan dana masuk bisa dipantau.
+        """
+    )
+
+    if "df_marketplace" not in st.session_state:
+        st.session_state["df_marketplace"] = pd.DataFrame([
+            {"Tanggal": "", "Marketplace": "Shopee", "No Pesanan": "", "Status": "Belum dicek", "Catatan": ""},
+        ])
+
+    df_marketplace_edit = st.data_editor(
+        st.session_state["df_marketplace"],
+        use_container_width=True,
+        num_rows="dynamic",
+        column_config={
+            "Marketplace": st.column_config.SelectboxColumn("Marketplace", options=["Shopee", "Tokopedia", "TikTok Shop", "Lainnya"]),
+            "Status": st.column_config.SelectboxColumn("Status", options=["Belum dicek", "Sudah input Accurate", "Dana masuk", "Selisih", "Selesai"]),
+        }
+    )
+
+    st.session_state["df_marketplace"] = df_marketplace_edit
+
+    st.subheader("Ringkasan Status")
+    if len(df_marketplace_edit) > 0 and "Status" in df_marketplace_edit.columns:
+        st.dataframe(df_marketplace_edit["Status"].value_counts().reset_index().rename(columns={"index": "Status", "Status": "Jumlah"}), use_container_width=True)
+
+elif menu_utama == "Laporan Bulanan":
+    st.header("Laporan Bulanan")
+
+    periode_laporan = st.text_input("Periode Laporan", value="Mei 2026")
+
+    df_kehadiran = st.session_state.get("df_kehadiran", pd.DataFrame())
+    df_uang_makan = st.session_state.get("df_rekap_uang_makan_edit", pd.DataFrame())
+    df_piutang = st.session_state.get("df_piutang_karyawan", pd.DataFrame())
+    df_marketplace = st.session_state.get("df_marketplace", pd.DataFrame())
+
+    total_uang_makan = 0
+    if isinstance(df_uang_makan, pd.DataFrame) and len(df_uang_makan) > 0 and "Seharusnya Uang Makan" in df_uang_makan.columns:
+        total_uang_makan = pd.to_numeric(df_uang_makan["Seharusnya Uang Makan"], errors="coerce").fillna(0).sum()
+
+    total_hilang_shk = float(st.session_state.get("dashboard_hilang_shk", 0) or 0)
+    total_hilang_veteran = float(st.session_state.get("dashboard_hilang_veteran", 0) or 0)
+
+    ringkasan_bulanan = pd.DataFrame([
+        {"Keterangan": "Periode", "Nilai": periode_laporan},
+        {"Keterangan": "Jumlah Data Absensi", "Nilai": len(df_kehadiran) if isinstance(df_kehadiran, pd.DataFrame) else 0},
+        {"Keterangan": "Total Uang Makan", "Nilai": format_rupiah_float(total_uang_makan)},
+        {"Keterangan": "Barang Hilang SHK Makassar", "Nilai": format_rupiah_float(total_hilang_shk)},
+        {"Keterangan": "Barang Hilang Walet Veteran", "Nilai": format_rupiah_float(total_hilang_veteran)},
+    ])
+
+    st.subheader("Ringkasan")
+    st.dataframe(ringkasan_bulanan, use_container_width=True)
+
+    output_laporan = BytesIO()
+    with pd.ExcelWriter(output_laporan, engine="openpyxl") as writer:
+        ringkasan_bulanan.to_excel(writer, index=False, sheet_name="Ringkasan")
+        if isinstance(df_kehadiran, pd.DataFrame) and len(df_kehadiran) > 0:
+            df_kehadiran.to_excel(writer, index=False, sheet_name="Absensi")
+        if isinstance(df_uang_makan, pd.DataFrame) and len(df_uang_makan) > 0:
+            df_uang_makan.to_excel(writer, index=False, sheet_name="Uang Makan")
+        if isinstance(df_piutang, pd.DataFrame) and len(df_piutang) > 0:
+            df_piutang.to_excel(writer, index=False, sheet_name="Piutang")
+        if isinstance(df_marketplace, pd.DataFrame) and len(df_marketplace) > 0:
+            df_marketplace.to_excel(writer, index=False, sheet_name="Marketplace")
+        auto_width_excel(writer)
+
+    st.download_button(
+        "Download Laporan Bulanan (.xlsx)",
+        data=output_laporan.getvalue(),
+        file_name=f"laporan_bulanan_{periode_laporan.replace(' ', '_').lower()}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 elif menu_utama == "Rekonsiliasi Bank":
     jenis_bank = st.radio("Pilih Bank", ["BRI", "BCA", "MANDIRI", "BNI"], horizontal=True)
