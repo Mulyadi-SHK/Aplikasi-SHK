@@ -10,6 +10,8 @@ from collections import defaultdict, Counter
 from decimal import Decimal, InvalidOperation
 from math import floor
 from pathlib import Path
+from datetime import datetime, timedelta
+import zipfile
 
 st.set_page_config(page_title="Aplikasi SHK", layout="wide")
 
@@ -1848,6 +1850,15 @@ if menu_utama == "Beranda":
 
     with col7:
         if st.button(
+            "SELFIE\\n\\nAbsensi Selfie\\n\\nKaryawan absen masuk/pulang memakai kamera HP dan foto sebagai bukti.",
+            use_container_width=True,
+            key="card_absensi_selfie"
+        ):
+            st.session_state["menu_utama"] = "Absensi Selfie"
+            st.rerun()
+
+    with col8:
+        if st.button(
             "MARKETPLACE\\n\\nMarketplace / Shopee\\n\\nCatat pengecekan order, dana masuk, dan selisih biaya marketplace.",
             use_container_width=True,
             key="card_marketplace"
@@ -1855,7 +1866,7 @@ if menu_utama == "Beranda":
             st.session_state["menu_utama"] = "Marketplace / Shopee"
             st.rerun()
 
-    with col8:
+    with col9:
         if st.button(
             "SOP\\n\\nModul SOP\\n\\nBuka SOP kerja, tabel langkah kerja, dan flowchart operasional SHK.",
             use_container_width=True,
@@ -1864,7 +1875,9 @@ if menu_utama == "Beranda":
             st.session_state["menu_utama"] = "Modul SOP"
             st.rerun()
 
-    with col9:
+    col10, col11, col12 = st.columns(3)
+
+    with col10:
         if st.button(
             "LAPORAN\\n\\nLaporan Bulanan\\n\\nGabungkan ringkasan absensi, uang makan, gaji, barang hilang, dan catatan operasional.",
             use_container_width=True,
@@ -1876,6 +1889,162 @@ if menu_utama == "Beranda":
     st.info("Klik kartu yang ingin dicek. Login tetap aktif saat pindah modul.")
 
 
+
+
+elif menu_utama == "Absensi Selfie":
+    st.header("Absensi Selfie")
+
+    st.warning(
+        "Catatan: di Streamlit Cloud, data foto tersimpan sementara di sesi aplikasi. "
+        "Untuk arsip permanen, download Excel/ZIP secara berkala atau nanti kita sambungkan ke Google Sheets/Drive."
+    )
+
+    if "absensi_selfie_rows" not in st.session_state:
+        st.session_state["absensi_selfie_rows"] = []
+
+    daftar_karyawan = daftar_karyawan_shk_dan_veteran()
+    nama_ke_cabang = {x["Nama"]: x["Cabang"] for x in daftar_karyawan}
+    nama_karyawan = [x["Nama"] for x in daftar_karyawan]
+
+    col_form1, col_form2, col_form3 = st.columns(3)
+
+    with col_form1:
+        nama_absen = st.selectbox("Nama Karyawan", nama_karyawan, key="selfie_nama_karyawan")
+
+    with col_form2:
+        cabang_absen = nama_ke_cabang.get(nama_absen, "")
+        st.text_input("Cabang", value=cabang_absen, disabled=True)
+
+    with col_form3:
+        jenis_absen = st.selectbox("Jenis Absen", ["Masuk", "Pulang"], key="selfie_jenis_absen")
+
+    col_jam1, col_jam2 = st.columns(2)
+
+    with col_jam1:
+        batas_jam_masuk = st.time_input(
+            "Batas Jam Masuk",
+            value=pd.to_datetime("09:00").time(),
+            help="Dipakai untuk menandai terlambat pada absen Masuk."
+        )
+
+    with col_jam2:
+        catatan_absen = st.text_input("Catatan, opsional", placeholder="Contoh: dinas luar / lupa absen / izin")
+
+    foto_selfie = st.camera_input("Ambil Foto Selfie")
+
+    if st.button("Simpan Absensi Selfie", use_container_width=True):
+        if foto_selfie is None:
+            st.error("Foto selfie wajib diambil dulu.")
+        else:
+            waktu_wib = datetime.utcnow() + timedelta(hours=7)
+            tanggal_absen = waktu_wib.date()
+            jam_absen = waktu_wib.time().replace(microsecond=0)
+
+            terlambat = "Tidak"
+            if jenis_absen == "Masuk" and jam_absen > batas_jam_masuk:
+                terlambat = "Ya"
+
+            foto_bytes = foto_selfie.getvalue()
+            nama_file_foto = f"{tanggal_absen}_{nama_absen.replace(' ', '_').replace('.', '')}_{jenis_absen}_{waktu_wib.strftime('%H%M%S')}.jpg"
+
+            st.session_state["absensi_selfie_rows"].append({
+                "Tanggal": str(tanggal_absen),
+                "Jam": jam_absen.strftime("%H:%M:%S"),
+                "Cabang": cabang_absen,
+                "Nama": nama_absen,
+                "Jenis Absen": jenis_absen,
+                "Terlambat": terlambat,
+                "Catatan": catatan_absen,
+                "Nama File Foto": nama_file_foto,
+                "_foto_bytes": foto_bytes,
+            })
+
+            st.success("Absensi selfie berhasil disimpan.")
+            st.rerun()
+
+    rows_absen = st.session_state.get("absensi_selfie_rows", [])
+
+    if len(rows_absen) > 0:
+        st.subheader("Riwayat Absensi Selfie")
+
+        df_absen_selfie = pd.DataFrame(rows_absen)
+        df_absen_tampil = df_absen_selfie.drop(columns=["_foto_bytes"], errors="ignore")
+        st.dataframe(df_absen_tampil, use_container_width=True)
+
+        st.subheader("Ringkasan Absensi Selfie")
+
+        df_masuk = df_absen_tampil[df_absen_tampil["Jenis Absen"] == "Masuk"].copy()
+        if len(df_masuk) > 0:
+            df_rekap_selfie = (
+                df_masuk
+                .groupby(["Cabang", "Nama"], as_index=False)
+                .agg(
+                    **{
+                        "Jumlah Kehadiran": ("Tanggal", "nunique"),
+                        "Terlambat": ("Terlambat", lambda x: (x == "Ya").sum()),
+                    }
+                )
+            )
+            df_rekap_selfie["Tidak Hadir"] = 0
+            df_rekap_selfie = df_rekap_selfie[["Cabang", "Nama", "Jumlah Kehadiran", "Tidak Hadir", "Terlambat"]]
+            st.dataframe(df_rekap_selfie, use_container_width=True)
+
+            if st.button("Gunakan Data Selfie untuk Rekap Absensi/Gaji", use_container_width=True):
+                df_sinkron = df_rekap_selfie[["Nama", "Jumlah Kehadiran", "Tidak Hadir", "Terlambat"]].copy()
+                st.session_state["df_kehadiran"] = df_sinkron
+
+                uang_makan_selfie = int(st.session_state.get("uang_makan_per_hari_rekap", 25000))
+                df_um_selfie = buat_tabel_uang_makan(df_sinkron, uang_makan_selfie, {})
+                kolom_rekap_um = [
+                    "Cabang",
+                    "Nama",
+                    "Jumlah Kehadiran",
+                    "Tidak Hadir",
+                    "Terlambat",
+                    "Uang Makan / Hari",
+                    "Seharusnya Uang Makan",
+                ]
+                st.session_state["df_rekap_uang_makan_edit"] = df_um_selfie[kolom_rekap_um].copy()
+
+                st.success("Data selfie sudah disinkronkan ke Rekap Absensi dan Gaji Karyawan.")
+
+        output_absen = BytesIO()
+        with pd.ExcelWriter(output_absen, engine="openpyxl") as writer:
+            df_absen_tampil.to_excel(writer, index=False, sheet_name="Absensi Selfie")
+            if "df_rekap_selfie" in locals() and len(df_rekap_selfie) > 0:
+                df_rekap_selfie.to_excel(writer, index=False, sheet_name="Rekap")
+            auto_width_excel(writer)
+
+        st.download_button(
+            "Download Rekap Absensi Selfie (.xlsx)",
+            data=output_absen.getvalue(),
+            file_name="rekap_absensi_selfie.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for row in rows_absen:
+                if row.get("_foto_bytes"):
+                    zip_file.writestr(row.get("Nama File Foto", "foto_absensi.jpg"), row["_foto_bytes"])
+
+        st.download_button(
+            "Download Semua Foto Selfie (.zip)",
+            data=zip_buffer.getvalue(),
+            file_name="foto_absensi_selfie.zip",
+            mime="application/zip"
+        )
+
+        with st.expander("Lihat Foto Terakhir"):
+            last = rows_absen[-1]
+            st.write(f"{last['Nama']} - {last['Tanggal']} {last['Jam']} - {last['Jenis Absen']}")
+            st.image(last["_foto_bytes"], width=260)
+
+        if st.button("Hapus Semua Data Absensi Selfie", type="secondary"):
+            st.session_state["absensi_selfie_rows"] = []
+            st.rerun()
+    else:
+        st.info("Belum ada data absensi selfie. Pilih nama, ambil foto, lalu klik Simpan Absensi Selfie.")
 
 elif menu_utama == "Dashboard Harian":
     st.header("Dashboard Harian")
@@ -1891,11 +2060,14 @@ elif menu_utama == "Dashboard Harian":
     total_hilang_shk = float(st.session_state.get("dashboard_hilang_shk", 0) or 0)
     total_hilang_veteran = float(st.session_state.get("dashboard_hilang_veteran", 0) or 0)
 
-    col_a, col_b, col_c, col_d = st.columns(4)
+    total_absensi_selfie = len(st.session_state.get("absensi_selfie_rows", []))
+
+    col_a, col_b, col_c, col_d, col_e = st.columns(5)
     col_a.metric("Data Absensi Terbaca", f"{total_karyawan_hadir} karyawan")
-    col_b.metric("Total Uang Makan", format_rupiah_float(total_uang_makan))
-    col_c.metric("Barang Hilang SHK", format_rupiah_float(total_hilang_shk))
-    col_d.metric("Barang Hilang Veteran", format_rupiah_float(total_hilang_veteran))
+    col_b.metric("Absensi Selfie", f"{total_absensi_selfie} data")
+    col_c.metric("Total Uang Makan", format_rupiah_float(total_uang_makan))
+    col_d.metric("Barang Hilang SHK", format_rupiah_float(total_hilang_shk))
+    col_e.metric("Barang Hilang Veteran", format_rupiah_float(total_hilang_veteran))
 
     st.subheader("Catatan Harian")
     catatan_dashboard = st.text_area(
@@ -2038,6 +2210,9 @@ elif menu_utama == "Laporan Bulanan":
     df_uang_makan = st.session_state.get("df_rekap_uang_makan_edit", pd.DataFrame())
     df_piutang = st.session_state.get("df_piutang_karyawan", pd.DataFrame())
     df_marketplace = st.session_state.get("df_marketplace", pd.DataFrame())
+    df_absensi_selfie = pd.DataFrame(st.session_state.get("absensi_selfie_rows", []))
+    if len(df_absensi_selfie) > 0:
+        df_absensi_selfie = df_absensi_selfie.drop(columns=["_foto_bytes"], errors="ignore")
 
     total_uang_makan = 0
     if isinstance(df_uang_makan, pd.DataFrame) and len(df_uang_makan) > 0 and "Seharusnya Uang Makan" in df_uang_makan.columns:
@@ -2068,6 +2243,8 @@ elif menu_utama == "Laporan Bulanan":
             df_piutang.to_excel(writer, index=False, sheet_name="Piutang")
         if isinstance(df_marketplace, pd.DataFrame) and len(df_marketplace) > 0:
             df_marketplace.to_excel(writer, index=False, sheet_name="Marketplace")
+        if isinstance(df_absensi_selfie, pd.DataFrame) and len(df_absensi_selfie) > 0:
+            df_absensi_selfie.to_excel(writer, index=False, sheet_name="Absensi Selfie")
         auto_width_excel(writer)
 
     st.download_button(
