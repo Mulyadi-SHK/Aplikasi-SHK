@@ -4,10 +4,12 @@ import pandas as pd
 import pdfplumber
 import re
 import hmac
+import base64
 from io import BytesIO
 from collections import defaultdict, Counter
 from decimal import Decimal, InvalidOperation
 from math import floor
+from pathlib import Path
 
 st.set_page_config(page_title="Aplikasi SHK", layout="wide")
 
@@ -1588,6 +1590,42 @@ def buat_excel_gaji_shk(df_gaji_format, df_laba_gabungan, ringkasan_laba, df_har
 
 
 
+
+def tampilkan_pdf_lokal(path_pdf, tinggi=760):
+    """
+    Menampilkan PDF yang ikut di-upload ke repository GitHub.
+    File PDF harus berada di folder yang sama dengan app.py.
+    """
+    path_pdf = Path(path_pdf)
+
+    if not path_pdf.exists():
+        st.warning(f"File SOP belum ada di repository: {path_pdf.name}")
+        st.info("Upload file PDF ini ke GitHub di folder yang sama dengan app.py.")
+        return
+
+    data_pdf = path_pdf.read_bytes()
+    b64_pdf = base64.b64encode(data_pdf).decode("utf-8")
+
+    st.download_button(
+        "Download PDF SOP",
+        data=data_pdf,
+        file_name=path_pdf.name,
+        mime="application/pdf"
+    )
+
+    st.markdown(
+        f"""
+        <iframe
+            src="data:application/pdf;base64,{b64_pdf}"
+            width="100%"
+            height="{tinggi}"
+            style="border:1px solid #374151; border-radius:12px;">
+        </iframe>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 def tampilkan_flowchart_sop(judul, langkah_list):
     st.markdown("#### Flowchart SOP")
 
@@ -1706,28 +1744,15 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Navigasi halaman tanpa radio menu.
-# Kartu di Beranda memakai query parameter, supaya area kartu bisa diklik langsung.
-menu_query = st.query_params.get("menu", None)
-peta_menu_query = {
-    "bank": "Rekonsiliasi Bank",
-    "absensi": "Rekap Absensi",
-    "gaji": "Gaji Karyawan",
-    "sop": "Modul SOP",
-}
-
+# Navigasi halaman tanpa reload URL, supaya login cukup sekali.
 if "menu_utama" not in st.session_state:
     st.session_state["menu_utama"] = "Beranda"
-
-if menu_query in peta_menu_query:
-    st.session_state["menu_utama"] = peta_menu_query[menu_query]
 
 menu_utama = st.session_state["menu_utama"]
 
 if menu_utama != "Beranda":
     if st.button("⬅️ Kembali ke Beranda", use_container_width=False):
         st.session_state["menu_utama"] = "Beranda"
-        st.query_params.clear()
         st.rerun()
 
 if menu_utama == "Beranda":
@@ -1735,97 +1760,70 @@ if menu_utama == "Beranda":
 
     st.markdown("""
     <style>
-    .home-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(220px, 1fr));
-        gap: 18px;
-        margin-top: 14px;
-        margin-bottom: 20px;
-    }
-    .home-card-link {
-        display: block;
-        text-decoration: none !important;
-        color: inherit !important;
-    }
-    .home-card {
-        background: #111827;
-        border: 1px solid #374151;
-        border-radius: 18px;
-        padding: 22px;
+    div[data-testid="stButton"] > button {
         min-height: 150px;
+        border-radius: 18px;
+        border: 1px solid #374151;
+        background: #111827;
+        color: #ffffff;
         box-shadow: 0 6px 18px rgba(0,0,0,0.20);
-        cursor: pointer;
+        text-align: left;
+        padding: 20px;
+        font-size: 18px;
+        font-weight: 800;
+        white-space: pre-line;
         transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
     }
-    .home-card:hover {
+    div[data-testid="stButton"] > button:hover {
         transform: translateY(-3px);
         border-color: #60a5fa;
         background: #172033;
-    }
-    .home-card-title {
-        font-size: 22px;
-        font-weight: 900;
         color: #ffffff;
-        margin-bottom: 10px;
-    }
-    .home-card-desc {
-        font-size: 15px;
-        color: #d1d5db;
-        line-height: 1.5;
-    }
-    .home-badge {
-        display: inline-block;
-        background: #1d4ed8;
-        color: white;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 800;
-        margin-bottom: 12px;
     }
     </style>
-
-    <div class="home-grid">
-        <a class="home-card-link" href="?menu=bank" target="_self">
-            <div class="home-card">
-                <div class="home-badge">BANK</div>
-                <div class="home-card-title">Rekonsiliasi Bank</div>
-                <div class="home-card-desc">
-                    Cek mutasi BRI, BCA, Mandiri, dan BNI dibandingkan dengan Histori Bank Accurate.
-                </div>
-            </div>
-        </a>
-        <a class="home-card-link" href="?menu=absensi" target="_self">
-            <div class="home-card">
-                <div class="home-badge">ABSENSI</div>
-                <div class="home-card-title">Rekap Absensi</div>
-                <div class="home-card-desc">
-                    Upload file mentah aplikasi hadir, cek jumlah hadir, tidak hadir, terlambat, dan uang makan per cabang.
-                </div>
-            </div>
-        </a>
-        <a class="home-card-link" href="?menu=gaji" target="_self">
-            <div class="home-card">
-                <div class="home-badge">GAJI</div>
-                <div class="home-card-title">Gaji Karyawan</div>
-                <div class="home-card-desc">
-                    Hitung gaji bagi hasil, uang makan, potongan absen, dan potongan kehilangan barang.
-                </div>
-            </div>
-        </a>
-        <a class="home-card-link" href="?menu=sop" target="_self">
-            <div class="home-card">
-                <div class="home-badge">SOP</div>
-                <div class="home-card-title">Modul SOP</div>
-                <div class="home-card-desc">
-                    Buka SOP kerja, tabel langkah kerja, dan flowchart operasional SHK.
-                </div>
-            </div>
-        </a>
-    </div>
     """, unsafe_allow_html=True)
 
-    st.info("Klik langsung kartu yang ingin dicek. Rekomendasi: kalau mau cek saldo dan transaksi, buka Rekonsiliasi Bank. Kalau mau hitung gaji, buka Gaji Karyawan.")
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        if st.button(
+            "BANK\\n\\nRekonsiliasi Bank\\n\\nCek mutasi BRI, BCA, Mandiri, dan BNI dibandingkan dengan Histori Bank Accurate.",
+            use_container_width=True,
+            key="card_bank"
+        ):
+            st.session_state["menu_utama"] = "Rekonsiliasi Bank"
+            st.rerun()
+
+    with col2:
+        if st.button(
+            "ABSENSI\\n\\nRekap Absensi\\n\\nUpload file mentah aplikasi hadir, cek jumlah hadir, tidak hadir, terlambat, dan uang makan per cabang.",
+            use_container_width=True,
+            key="card_absensi"
+        ):
+            st.session_state["menu_utama"] = "Rekap Absensi"
+            st.rerun()
+
+    with col3:
+        if st.button(
+            "GAJI\\n\\nGaji Karyawan\\n\\nHitung gaji bagi hasil, uang makan, potongan absen, dan potongan kehilangan barang.",
+            use_container_width=True,
+            key="card_gaji"
+        ):
+            st.session_state["menu_utama"] = "Gaji Karyawan"
+            st.rerun()
+
+    col4, col5, col6 = st.columns(3)
+
+    with col4:
+        if st.button(
+            "SOP\\n\\nModul SOP\\n\\nBuka SOP kerja, tabel langkah kerja, dan flowchart operasional SHK.",
+            use_container_width=True,
+            key="card_sop"
+        ):
+            st.session_state["menu_utama"] = "Modul SOP"
+            st.rerun()
+
+    st.info("Klik kartu yang ingin dicek. Login tetap aktif saat pindah modul.")
 
 elif menu_utama == "Rekonsiliasi Bank":
     jenis_bank = st.radio("Pilih Bank", ["BRI", "BCA", "MANDIRI", "BNI"], horizontal=True)
@@ -2250,6 +2248,7 @@ elif menu_utama == "Modul SOP":
             "SOP Rekonsiliasi Bank",
             "SOP Gaji Karyawan",
             "SOP Kehilangan Barang",
+            "SOP Pembuatan Dokumen SOP",
             "SOP Custom / Manual",
         ],
         horizontal=False
@@ -2479,6 +2478,56 @@ Nomor pesanan Shopee wajib dicatat di keterangan/label agar mudah direkonsiliasi
             "Download SOP Kehilangan Barang (.xlsx)",
             data=buat_excel_sop(df_sop),
             file_name="sop_kehilangan_barang.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    elif pilihan_sop == "SOP Pembuatan Dokumen SOP":
+        st.subheader("SOP Pembuatan Dokumen SOP")
+
+        st.markdown(
+            """
+            SOP ini adalah panduan standar untuk membuat dokumen SOP di Toko Walet Veteran.
+            Isinya mencakup tujuan, ruang lingkup, istilah dan definisi, urutan prosedur,
+            referensi, bagan alir, lampiran, dan lembar pengesahan.
+            """
+        )
+
+        data_sop = [
+            {"No": 1, "Bagian": "Tujuan", "Ringkasan": "Memastikan dokumen SOP dibuat dengan kualitas yang konsisten, dapat diandalkan, dan memenuhi kebutuhan operasional."},
+            {"No": 2, "Bagian": "Ruang Lingkup", "Ringkasan": "Digunakan di semua cabang atau unit usaha Toko Walet SHK dan Toko Walet Veteran."},
+            {"No": 3, "Bagian": "Istilah dan Definisi", "Ringkasan": "Menjelaskan cabang/unit usaha, KOP dokumen, tujuan, ruang lingkup, istilah, prosedur, referensi, bagan alir, lampiran, dan pengesahan."},
+            {"No": 4, "Bagian": "Urutan Prosedur", "Ringkasan": "Mulai dari menyiapkan dokumen SOP, menulis tujuan, ruang lingkup, istilah, prosedur, bagan alir, lampiran, pengesahan, lalu selesai."},
+            {"No": 5, "Bagian": "Referensi", "Ringkasan": "Mengacu ke dokumen IK.HR.2408.001 dan IK.HR.2408.002."},
+            {"No": 6, "Bagian": "Bagan Alir", "Ringkasan": "Alur mulai dari KOP SOP, tujuan, ruang lingkup, istilah, urutan prosedur, instruksi kerja, bagan alir, lampiran, lembar pengesahan, hingga selesai."},
+            {"No": 7, "Bagian": "Lampiran", "Ringkasan": "Berisi contoh KOP Dokumen SOP dan Lembar Pengesahan."},
+            {"No": 8, "Bagian": "Lembar Pengesahan", "Ringkasan": "Memuat perumusan oleh Mulyadi, pemeriksa oleh Achyar, dan persetujuan oleh Ahmad."},
+        ]
+
+        df_sop = pd.DataFrame(data_sop)
+        st.dataframe(df_sop, use_container_width=True)
+
+        tampilkan_flowchart_sop(
+            "SOP Pembuatan Dokumen SOP",
+            [
+                "KOP SOP",
+                "Tujuan",
+                "Ruang Lingkup",
+                "Istilah dan Definisi",
+                "Urutan Prosedur",
+                "Instruksi Kerja",
+                "Bagan Alir",
+                "Lampiran",
+                "Lembar Pengesahan",
+            ]
+        )
+
+        st.markdown("#### File PDF SOP")
+        tampilkan_pdf_lokal("SOP_Pembuatan_Dokumen_SOP.pdf", tinggi=760)
+
+        st.download_button(
+            "Download Ringkasan SOP Pembuatan Dokumen SOP (.xlsx)",
+            data=buat_excel_sop(df_sop),
+            file_name="sop_pembuatan_dokumen_sop.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
