@@ -1657,7 +1657,7 @@ def tampilkan_flowchart_sop(judul, langkah_list):
         border-radius: 16px;
         padding: 16px 20px;
         text-align: center;
-        font-size: 17px;
+        font-size: 18px;
         font-weight: 700;
         line-height: 1.45;
         border: 1px solid rgba(255,255,255,0.15);
@@ -1766,7 +1766,7 @@ if menu_utama == "Beranda":
     st.markdown("""
     <style>
     div[data-testid="stButton"] > button {
-        min-height: 145px;
+        min-height: 105px;
         border-radius: 18px;
         border: 1px solid #374151;
         background: #111827;
@@ -1792,7 +1792,7 @@ if menu_utama == "Beranda":
 
     with col1:
         if st.button(
-            "DASHBOARD\\n\\nDashboard Harian\\n\\nRingkasan cepat saldo, absensi, gaji, uang makan, dan barang hilang.",
+            "DASHBOARD\\n\\nRingkasan harian",
             use_container_width=True,
             key="card_dashboard"
         ):
@@ -1801,7 +1801,7 @@ if menu_utama == "Beranda":
 
     with col2:
         if st.button(
-            "BANK\\n\\nRekonsiliasi Bank\\n\\nCek mutasi BRI, BCA, Mandiri, dan BNI dibandingkan dengan Histori Bank Accurate.",
+            "REKONSILIASI\\n\\nCek bank vs Accurate",
             use_container_width=True,
             key="card_bank"
         ):
@@ -1810,7 +1810,7 @@ if menu_utama == "Beranda":
 
     with col3:
         if st.button(
-            "ABSENSI\\n\\nRekap Absensi\\n\\nUpload file mentah aplikasi hadir, cek jumlah hadir, tidak hadir, terlambat, dan uang makan per cabang.",
+            "ABSEN\\n\\nRekap kehadiran",
             use_container_width=True,
             key="card_absensi"
         ):
@@ -1821,7 +1821,7 @@ if menu_utama == "Beranda":
 
     with col4:
         if st.button(
-            "GAJI\\n\\nGaji Karyawan\\n\\nHitung gaji bagi hasil, uang makan, potongan absen, dan potongan kehilangan barang.",
+            "GAJI\\n\\nHitung gaji karyawan",
             use_container_width=True,
             key="card_gaji"
         ):
@@ -1830,7 +1830,7 @@ if menu_utama == "Beranda":
 
     with col5:
         if st.button(
-            "STOK\\n\\nStok & Barang Hilang\\n\\nUpload penyesuaian persediaan dan hitung total kehilangan per cabang.",
+            "STOK\\n\\nBarang hilang",
             use_container_width=True,
             key="card_stok_hilang"
         ):
@@ -1839,7 +1839,7 @@ if menu_utama == "Beranda":
 
     with col6:
         if st.button(
-            "PIUTANG\\n\\nPiutang Karyawan\\n\\nCatat pinjaman, cicilan, potongan gaji, dan sisa piutang karyawan.",
+            "PIUTANG\\n\\nPiutang karyawan",
             use_container_width=True,
             key="card_piutang"
         ):
@@ -1850,7 +1850,7 @@ if menu_utama == "Beranda":
 
     with col7:
         if st.button(
-            "SELFIE\\n\\nAbsensi Selfie\\n\\nKaryawan absen masuk/pulang memakai kamera HP dan foto sebagai bukti.",
+            "SELFIE\\n\\nAbsen pakai foto",
             use_container_width=True,
             key="card_absensi_selfie"
         ):
@@ -1859,7 +1859,7 @@ if menu_utama == "Beranda":
 
     with col8:
         if st.button(
-            "MARKETPLACE\\n\\nMarketplace / Shopee\\n\\nCatat pengecekan order, dana masuk, dan selisih biaya marketplace.",
+            "MARKETPLACE\\n\\nShopee & toko online",
             use_container_width=True,
             key="card_marketplace"
         ):
@@ -1868,7 +1868,7 @@ if menu_utama == "Beranda":
 
     with col9:
         if st.button(
-            "SOP\\n\\nModul SOP\\n\\nBuka SOP kerja, tabel langkah kerja, dan flowchart operasional SHK.",
+            "SOP\\n\\nPanduan kerja",
             use_container_width=True,
             key="card_sop"
         ):
@@ -1879,7 +1879,7 @@ if menu_utama == "Beranda":
 
     with col10:
         if st.button(
-            "LAPORAN\\n\\nLaporan Bulanan\\n\\nGabungkan ringkasan absensi, uang makan, gaji, barang hilang, dan catatan operasional.",
+            "LAPORAN\\n\\nRekap bulanan",
             use_container_width=True,
             key="card_laporan"
         ):
