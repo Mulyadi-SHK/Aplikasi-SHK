@@ -12,6 +12,8 @@ from math import floor
 from pathlib import Path
 from datetime import datetime, timedelta
 import zipfile
+import gspread
+from google.oauth2.service_account import Credentials
 
 st.set_page_config(page_title="Aplikasi SHK", layout="wide")
 
@@ -926,6 +928,89 @@ def normalisasi_nama_karyawan(teks):
         return "Muh. Abrar"
 
     return str(teks_asli).strip().title()
+
+
+
+# =====================================================
+# GOOGLE SHEETS DATABASE SEDERHANA
+# =====================================================
+
+SCOPE_GOOGLE_SHEETS = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
+
+
+def google_sheets_aktif():
+    try:
+        return (
+            "gcp_service_account" in st.secrets
+            and "google_sheets" in st.secrets
+            and "spreadsheet_id" in st.secrets["google_sheets"]
+        )
+    except Exception:
+        return False
+
+
+def get_google_spreadsheet():
+    if not google_sheets_aktif():
+        return None
+
+    try:
+        creds = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=SCOPE_GOOGLE_SHEETS
+        )
+        client = gspread.authorize(creds)
+        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
+        return client.open_by_key(spreadsheet_id)
+    except Exception as e:
+        st.warning("Google Sheets belum tersambung.")
+        st.write("Detail:", e)
+        return None
+
+
+def baca_sheet_ke_dataframe(nama_sheet):
+    ss = get_google_spreadsheet()
+    if ss is None:
+        return pd.DataFrame()
+
+    try:
+        try:
+            ws = ss.worksheet(nama_sheet)
+        except Exception:
+            ws = ss.add_worksheet(title=nama_sheet, rows=1000, cols=30)
+
+        data = ws.get_all_records()
+        return pd.DataFrame(data)
+    except Exception as e:
+        st.warning(f"Sheet {nama_sheet} belum bisa dibaca.")
+        st.write("Detail:", e)
+        return pd.DataFrame()
+
+
+def simpan_dataframe_ke_sheet(nama_sheet, df):
+    ss = get_google_spreadsheet()
+    if ss is None:
+        return False
+
+    try:
+        try:
+            ws = ss.worksheet(nama_sheet)
+        except Exception:
+            ws = ss.add_worksheet(title=nama_sheet, rows=1000, cols=30)
+
+        df_simpan = df.copy().fillna("")
+        ws.clear()
+
+        values = [df_simpan.columns.tolist()] + df_simpan.astype(str).values.tolist()
+        ws.update(values)
+
+        return True
+    except Exception as e:
+        st.error(f"Gagal menyimpan ke Google Sheets: {nama_sheet}")
+        st.write("Detail:", e)
+        return False
 
 
 def default_data_karyawan_shk():
@@ -2021,17 +2106,46 @@ elif menu_utama == "Karyawan":
     )
 
     if "df_data_karyawan" not in st.session_state:
-        st.session_state["df_data_karyawan"] = pd.DataFrame(default_data_karyawan_shk())
+        df_karyawan_sheet = baca_sheet_ke_dataframe("Data Karyawan")
 
-    col_kry_a, col_kry_b, col_kry_c = st.columns(3)
+        if len(df_karyawan_sheet) > 0:
+            st.session_state["df_data_karyawan"] = df_karyawan_sheet
+        else:
+            st.session_state["df_data_karyawan"] = pd.DataFrame(default_data_karyawan_shk())
+
+    if google_sheets_aktif():
+        st.success("Penyimpanan Google Sheets aktif.")
+    else:
+        st.warning("Google Sheets belum disetel. Data tetap bisa diedit, tapi belum permanen sampai Secrets Google Sheets diisi.")
+
+    col_kry_a, col_kry_b, col_kry_c, col_kry_d = st.columns(4)
+
     with col_kry_a:
+        if st.button("Simpan ke Google Sheets", use_container_width=True):
+            berhasil = simpan_dataframe_ke_sheet("Data Karyawan", st.session_state["df_data_karyawan"])
+
+            if berhasil:
+                st.success("Data karyawan berhasil disimpan permanen ke Google Sheets.")
+
+    with col_kry_b:
+        if st.button("Muat Ulang dari Google Sheets", use_container_width=True):
+            df_reload = baca_sheet_ke_dataframe("Data Karyawan")
+
+            if len(df_reload) > 0:
+                st.session_state["df_data_karyawan"] = df_reload
+                st.success("Data karyawan berhasil dimuat ulang dari Google Sheets.")
+                st.rerun()
+            else:
+                st.warning("Google Sheets masih kosong atau belum tersambung.")
+
+    with col_kry_c:
         if st.button("Reset ke Data Default", use_container_width=True):
             st.session_state["df_data_karyawan"] = pd.DataFrame(default_data_karyawan_shk())
             st.rerun()
 
-    with col_kry_b:
+    with col_kry_d:
         file_karyawan_upload = st.file_uploader(
-            "Upload Excel Data Karyawan",
+            "Upload Excel",
             type=["xlsx", "xls"],
             key="upload_data_karyawan"
         )
@@ -2043,7 +2157,7 @@ elif menu_utama == "Karyawan":
             kolom_wajib_karyawan = ["Cabang", "Nama"]
             if all(k in df_upload_karyawan.columns for k in kolom_wajib_karyawan):
                 st.session_state["df_data_karyawan"] = df_upload_karyawan
-                st.success("Data karyawan dari Excel berhasil dimasukkan.")
+                st.success("Data karyawan dari Excel berhasil dimasukkan. Klik Simpan ke Google Sheets agar permanen.")
             else:
                 st.error("Excel wajib punya kolom minimal: Cabang dan Nama.")
         except Exception as e:
@@ -2092,6 +2206,16 @@ elif menu_utama == "Karyawan":
 
     st.session_state["df_data_karyawan"] = df_karyawan_edit
 
+    col_save_auto1, col_save_auto2 = st.columns(2)
+    with col_save_auto1:
+        if st.button("Simpan Perubahan Data Karyawan", use_container_width=True, key="simpan_perubahan_data_karyawan"):
+            berhasil = simpan_dataframe_ke_sheet("Data Karyawan", df_karyawan_edit)
+
+            if berhasil:
+                st.success("Perubahan data karyawan sudah tersimpan permanen.")
+            else:
+                st.info("Data tersimpan sementara di aplikasi. Aktifkan Google Sheets agar permanen.")
+
     total_karyawan = len(df_karyawan_edit)
     total_aktif = len(df_karyawan_edit[df_karyawan_edit["Status"].astype(str).str.upper() == "AKTIF"])
     total_shk = len(df_karyawan_edit[df_karyawan_edit["Cabang"].astype(str).str.contains("SHK", case=False, na=False)])
@@ -2115,7 +2239,7 @@ elif menu_utama == "Karyawan":
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    st.info("Catatan: karena aplikasi berjalan di Streamlit Cloud, perubahan data ini tersimpan selama sesi aplikasi. Untuk arsip permanen, download Excel data karyawan setelah edit.")
+    st.info("Untuk penyimpanan permanen, klik Simpan ke Google Sheets setelah edit data. Kalau Google Sheets belum disetel, download Excel sebagai backup sementara.")
 
 elif menu_utama == "Absensi Selfie":
     st.header("Absensi Selfie")
