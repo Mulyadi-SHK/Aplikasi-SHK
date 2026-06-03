@@ -928,17 +928,126 @@ def normalisasi_nama_karyawan(teks):
     return str(teks_asli).strip().title()
 
 
-def daftar_karyawan_shk_dan_veteran():
+def default_data_karyawan_shk():
     return [
-        {"Cabang": "SHK Makassar", "Nama": "M. Nur Mustakim Hamzah"},
-        {"Cabang": "SHK Makassar", "Nama": "Anwar Tony"},
-        {"Cabang": "SHK Makassar", "Nama": "Idris Mappakayah Dg.Sijalling"},
-        {"Cabang": "SHK Makassar", "Nama": "Jusriandi"},
-        {"Cabang": "Walet Veteran", "Nama": "Ahmad Lata"},
-        {"Cabang": "Walet Veteran", "Nama": "Rahmat"},
-        {"Cabang": "Walet Veteran", "Nama": "Yusran"},
-        {"Cabang": "Walet Veteran", "Nama": "Muh. Abrar"},
+        {
+            "Cabang": "SHK Makassar",
+            "Nama": "M. Nur Mustakim Hamzah",
+            "Jabatan": "Admin",
+            "Status": "Aktif",
+            "Tipe Gaji": "Bagi Hasil",
+            "Persentase Bagi Hasil": 7.5,
+            "Uang Makan / Hari": 25000,
+            "No HP": "",
+            "Rekening": "",
+            "Catatan": "",
+        },
+        {
+            "Cabang": "SHK Makassar",
+            "Nama": "Anwar Tony",
+            "Jabatan": "Karyawan",
+            "Status": "Aktif",
+            "Tipe Gaji": "Bagi Hasil",
+            "Persentase Bagi Hasil": 7.5,
+            "Uang Makan / Hari": 25000,
+            "No HP": "",
+            "Rekening": "",
+            "Catatan": "",
+        },
+        {
+            "Cabang": "SHK Makassar",
+            "Nama": "Idris Mappakayah Dg.Sijalling",
+            "Jabatan": "Karyawan",
+            "Status": "Aktif",
+            "Tipe Gaji": "Harian",
+            "Persentase Bagi Hasil": 0.0,
+            "Uang Makan / Hari": 25000,
+            "No HP": "",
+            "Rekening": "",
+            "Catatan": "",
+        },
+        {
+            "Cabang": "SHK Makassar",
+            "Nama": "Jusriandi",
+            "Jabatan": "Karyawan",
+            "Status": "Aktif",
+            "Tipe Gaji": "Harian",
+            "Persentase Bagi Hasil": 0.0,
+            "Uang Makan / Hari": 25000,
+            "No HP": "",
+            "Rekening": "",
+            "Catatan": "",
+        },
+        {
+            "Cabang": "Walet Veteran",
+            "Nama": "Ahmad Lata",
+            "Jabatan": "Karyawan",
+            "Status": "Aktif",
+            "Tipe Gaji": "Bagi Hasil",
+            "Persentase Bagi Hasil": 7.5,
+            "Uang Makan / Hari": 25000,
+            "No HP": "",
+            "Rekening": "",
+            "Catatan": "",
+        },
+        {
+            "Cabang": "Walet Veteran",
+            "Nama": "Rahmat",
+            "Jabatan": "Karyawan",
+            "Status": "Aktif",
+            "Tipe Gaji": "Bagi Hasil",
+            "Persentase Bagi Hasil": 7.5,
+            "Uang Makan / Hari": 25000,
+            "No HP": "",
+            "Rekening": "",
+            "Catatan": "",
+        },
+        {
+            "Cabang": "Walet Veteran",
+            "Nama": "Yusran",
+            "Jabatan": "Karyawan",
+            "Status": "Aktif",
+            "Tipe Gaji": "Harian",
+            "Persentase Bagi Hasil": 0.0,
+            "Uang Makan / Hari": 25000,
+            "No HP": "",
+            "Rekening": "",
+            "Catatan": "",
+        },
+        {
+            "Cabang": "Walet Veteran",
+            "Nama": "Muh. Abrar",
+            "Jabatan": "Karyawan",
+            "Status": "Aktif",
+            "Tipe Gaji": "Harian",
+            "Persentase Bagi Hasil": 0.0,
+            "Uang Makan / Hari": 25000,
+            "No HP": "",
+            "Rekening": "",
+            "Catatan": "",
+        },
     ]
+
+
+def daftar_karyawan_shk_dan_veteran():
+    """
+    Data karyawan utama.
+    Kalau menu Karyawan sudah diedit, modul lain otomatis membaca data dari session_state.
+    """
+    if "df_data_karyawan" in st.session_state:
+        df = st.session_state["df_data_karyawan"]
+
+        if isinstance(df, pd.DataFrame) and len(df) > 0:
+            df_aktif = df.copy()
+
+            if "Status" in df_aktif.columns:
+                df_aktif = df_aktif[df_aktif["Status"].astype(str).str.upper() == "AKTIF"]
+
+            if "Cabang" in df_aktif.columns and "Nama" in df_aktif.columns:
+                return df_aktif.to_dict("records")
+
+    return default_data_karyawan_shk()
+
 
 
 def daftar_karyawan_bagi_hasil():
@@ -1850,6 +1959,15 @@ if menu_utama == "Beranda":
 
     with col7:
         if st.button(
+            "KARYAWAN\\n\\nData karyawan",
+            use_container_width=True,
+            key="card_karyawan"
+        ):
+            st.session_state["menu_utama"] = "Karyawan"
+            st.rerun()
+
+    with col8:
+        if st.button(
             "SELFIE\\n\\nAbsen pakai foto",
             use_container_width=True,
             key="card_absensi_selfie"
@@ -1857,7 +1975,7 @@ if menu_utama == "Beranda":
             st.session_state["menu_utama"] = "Absensi Selfie"
             st.rerun()
 
-    with col8:
+    with col9:
         if st.button(
             "MARKETPLACE\\n\\nShopee & toko online",
             use_container_width=True,
@@ -1866,7 +1984,9 @@ if menu_utama == "Beranda":
             st.session_state["menu_utama"] = "Marketplace / Shopee"
             st.rerun()
 
-    with col9:
+    col10, col11, col12 = st.columns(3)
+
+    with col10:
         if st.button(
             "SOP\\n\\nPanduan kerja",
             use_container_width=True,
@@ -1875,9 +1995,7 @@ if menu_utama == "Beranda":
             st.session_state["menu_utama"] = "Modul SOP"
             st.rerun()
 
-    col10, col11, col12 = st.columns(3)
-
-    with col10:
+    with col11:
         if st.button(
             "LAPORAN\\n\\nRekap bulanan",
             use_container_width=True,
@@ -1890,6 +2008,114 @@ if menu_utama == "Beranda":
 
 
 
+
+
+elif menu_utama == "Karyawan":
+    st.header("Data Karyawan")
+
+    st.markdown(
+        """
+        Menu ini menjadi pusat data karyawan.
+        Data yang diedit di sini otomatis dipakai untuk **Rekap Absensi**, **Absensi Selfie**, **Gaji Karyawan**, dan **Uang Makan** selama sesi aplikasi berjalan.
+        """
+    )
+
+    if "df_data_karyawan" not in st.session_state:
+        st.session_state["df_data_karyawan"] = pd.DataFrame(default_data_karyawan_shk())
+
+    col_kry_a, col_kry_b, col_kry_c = st.columns(3)
+    with col_kry_a:
+        if st.button("Reset ke Data Default", use_container_width=True):
+            st.session_state["df_data_karyawan"] = pd.DataFrame(default_data_karyawan_shk())
+            st.rerun()
+
+    with col_kry_b:
+        file_karyawan_upload = st.file_uploader(
+            "Upload Excel Data Karyawan",
+            type=["xlsx", "xls"],
+            key="upload_data_karyawan"
+        )
+
+    if file_karyawan_upload:
+        try:
+            df_upload_karyawan = pd.read_excel(file_karyawan_upload)
+
+            kolom_wajib_karyawan = ["Cabang", "Nama"]
+            if all(k in df_upload_karyawan.columns for k in kolom_wajib_karyawan):
+                st.session_state["df_data_karyawan"] = df_upload_karyawan
+                st.success("Data karyawan dari Excel berhasil dimasukkan.")
+            else:
+                st.error("Excel wajib punya kolom minimal: Cabang dan Nama.")
+        except Exception as e:
+            st.error("File data karyawan tidak bisa dibaca.")
+            st.write("Detail:", e)
+
+    df_karyawan = st.session_state["df_data_karyawan"].copy()
+
+    kolom_default_karyawan = [
+        "Cabang",
+        "Nama",
+        "Jabatan",
+        "Status",
+        "Tipe Gaji",
+        "Persentase Bagi Hasil",
+        "Uang Makan / Hari",
+        "No HP",
+        "Rekening",
+        "Catatan",
+    ]
+
+    for kolom in kolom_default_karyawan:
+        if kolom not in df_karyawan.columns:
+            if kolom in ["Persentase Bagi Hasil", "Uang Makan / Hari"]:
+                df_karyawan[kolom] = 0
+            elif kolom == "Status":
+                df_karyawan[kolom] = "Aktif"
+            else:
+                df_karyawan[kolom] = ""
+
+    df_karyawan = df_karyawan[kolom_default_karyawan]
+
+    df_karyawan_edit = st.data_editor(
+        df_karyawan,
+        use_container_width=True,
+        num_rows="dynamic",
+        column_config={
+            "Cabang": st.column_config.SelectboxColumn("Cabang", options=["SHK Makassar", "Walet Veteran", "Lainnya"]),
+            "Status": st.column_config.SelectboxColumn("Status", options=["Aktif", "Nonaktif"]),
+            "Tipe Gaji": st.column_config.SelectboxColumn("Tipe Gaji", options=["Bagi Hasil", "Harian", "Tetap", "Lainnya"]),
+            "Persentase Bagi Hasil": st.column_config.NumberColumn("Persentase Bagi Hasil", min_value=0.0, max_value=100.0, step=0.5),
+            "Uang Makan / Hari": st.column_config.NumberColumn("Uang Makan / Hari", min_value=0, step=1000),
+        },
+        key="editor_data_karyawan"
+    )
+
+    st.session_state["df_data_karyawan"] = df_karyawan_edit
+
+    total_karyawan = len(df_karyawan_edit)
+    total_aktif = len(df_karyawan_edit[df_karyawan_edit["Status"].astype(str).str.upper() == "AKTIF"])
+    total_shk = len(df_karyawan_edit[df_karyawan_edit["Cabang"].astype(str).str.contains("SHK", case=False, na=False)])
+    total_veteran = len(df_karyawan_edit[df_karyawan_edit["Cabang"].astype(str).str.contains("Veteran|Walet", case=False, na=False)])
+
+    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+    col_m1.metric("Total Karyawan", total_karyawan)
+    col_m2.metric("Aktif", total_aktif)
+    col_m3.metric("SHK Makassar", total_shk)
+    col_m4.metric("Walet Veteran", total_veteran)
+
+    output_karyawan = BytesIO()
+    with pd.ExcelWriter(output_karyawan, engine="openpyxl") as writer:
+        df_karyawan_edit.to_excel(writer, index=False, sheet_name="Data Karyawan")
+        auto_width_excel(writer)
+
+    st.download_button(
+        "Download Data Karyawan (.xlsx)",
+        data=output_karyawan.getvalue(),
+        file_name="data_karyawan_shk.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    st.info("Catatan: karena aplikasi berjalan di Streamlit Cloud, perubahan data ini tersimpan selama sesi aplikasi. Untuk arsip permanen, download Excel data karyawan setelah edit.")
 
 elif menu_utama == "Absensi Selfie":
     st.header("Absensi Selfie")
@@ -2062,12 +2288,15 @@ elif menu_utama == "Dashboard Harian":
 
     total_absensi_selfie = len(st.session_state.get("absensi_selfie_rows", []))
 
-    col_a, col_b, col_c, col_d, col_e = st.columns(5)
-    col_a.metric("Data Absensi Terbaca", f"{total_karyawan_hadir} karyawan")
-    col_b.metric("Absensi Selfie", f"{total_absensi_selfie} data")
-    col_c.metric("Total Uang Makan", format_rupiah_float(total_uang_makan))
-    col_d.metric("Barang Hilang SHK", format_rupiah_float(total_hilang_shk))
-    col_e.metric("Barang Hilang Veteran", format_rupiah_float(total_hilang_veteran))
+    total_data_karyawan = len(daftar_karyawan_shk_dan_veteran())
+
+    col_a, col_b, col_c, col_d, col_e, col_f = st.columns(6)
+    col_a.metric("Data Karyawan", f"{total_data_karyawan} aktif")
+    col_b.metric("Data Absensi Terbaca", f"{total_karyawan_hadir} karyawan")
+    col_c.metric("Absensi Selfie", f"{total_absensi_selfie} data")
+    col_d.metric("Total Uang Makan", format_rupiah_float(total_uang_makan))
+    col_e.metric("Barang Hilang SHK", format_rupiah_float(total_hilang_shk))
+    col_f.metric("Barang Hilang Veteran", format_rupiah_float(total_hilang_veteran))
 
     st.subheader("Catatan Harian")
     catatan_dashboard = st.text_area(
@@ -2210,6 +2439,7 @@ elif menu_utama == "Laporan Bulanan":
     df_uang_makan = st.session_state.get("df_rekap_uang_makan_edit", pd.DataFrame())
     df_piutang = st.session_state.get("df_piutang_karyawan", pd.DataFrame())
     df_marketplace = st.session_state.get("df_marketplace", pd.DataFrame())
+    df_data_karyawan = st.session_state.get("df_data_karyawan", pd.DataFrame(default_data_karyawan_shk()))
     df_absensi_selfie = pd.DataFrame(st.session_state.get("absensi_selfie_rows", []))
     if len(df_absensi_selfie) > 0:
         df_absensi_selfie = df_absensi_selfie.drop(columns=["_foto_bytes"], errors="ignore")
@@ -2243,6 +2473,8 @@ elif menu_utama == "Laporan Bulanan":
             df_piutang.to_excel(writer, index=False, sheet_name="Piutang")
         if isinstance(df_marketplace, pd.DataFrame) and len(df_marketplace) > 0:
             df_marketplace.to_excel(writer, index=False, sheet_name="Marketplace")
+        if isinstance(df_data_karyawan, pd.DataFrame) and len(df_data_karyawan) > 0:
+            df_data_karyawan.to_excel(writer, index=False, sheet_name="Data Karyawan")
         if isinstance(df_absensi_selfie, pd.DataFrame) and len(df_absensi_selfie) > 0:
             df_absensi_selfie.to_excel(writer, index=False, sheet_name="Absensi Selfie")
         auto_width_excel(writer)
